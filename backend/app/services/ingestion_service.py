@@ -114,7 +114,7 @@ class IngestionService:
         Orchestrates the ingestion pipeline for a locally uploaded file and persists to Supabase.
         """
         temp_dir = os.path.dirname(video_path)
-        client = supabase_db.client
+        client = supabase_db.get_client()
 
         try:
             if client:

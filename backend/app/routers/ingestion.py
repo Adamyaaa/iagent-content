@@ -37,31 +37,38 @@ async def ingest_upload(
     file: UploadFile = File(...),
     source_platform: str = Form("youtube")
 ):
-    import shutil
-    
-    queue_id = str(uuid.uuid4())
-    temp_dir = os.path.join(os.getcwd(), 'app', 'temp', queue_id)
-    os.makedirs(temp_dir, exist_ok=True)
-    video_path = os.path.join(temp_dir, file.filename)
-    
     try:
+        import shutil
+        import traceback
+        
+        queue_id = str(uuid.uuid4())
+        temp_dir = os.path.join(os.getcwd(), 'app', 'temp', queue_id)
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Guard against None filename
+        filename = file.filename or "uploaded_video.mp4"
+        video_path = os.path.join(temp_dir, filename)
+        
         with open(video_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
-        
-    if supabase_db.client:
-        supabase_db.client.table("trend_queue").insert({
-            "id": queue_id,
-            "source_url": f"Local Upload: {file.filename}",
-            "status": "queued"
-        }).execute()
+            
+        if supabase_db.get_client():
+            supabase_db.get_client().table("trend_queue").insert({
+                "id": queue_id,
+                "source_url": f"Local Upload: {filename}",
+                "status": "queued"
+            }).execute()
 
-    background_tasks.add_task(
-        run_upload_pipeline,
-        queue_id=queue_id,
-        video_path=video_path,
-        filename=file.filename,
-        platform=source_platform
-    )
-    return {"queue_id": queue_id, "status": "pending"}
+        background_tasks.add_task(
+            run_upload_pipeline,
+            queue_id=queue_id,
+            video_path=video_path,
+            filename=filename,
+            platform=source_platform
+        )
+        return {"queue_id": queue_id, "status": "pending"}
+    except Exception as e:
+        import traceback
+        error_msg = f"{str(e)} - {traceback.format_exc()}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
