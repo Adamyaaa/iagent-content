@@ -25,17 +25,16 @@ async def get_settings():
 
 @router.post("/")
 async def update_settings(new_settings: AppSettings):
-    # Only update fields that are provided and not masked
     current = settings_service.load_settings()
     
     if new_settings.groq_api_key and not new_settings.groq_api_key.endswith("***"):
-        current.groq_api_key = new_settings.groq_api_key
+        current.groq_api_key = new_settings.groq_api_key.strip()
     if new_settings.gemini_api_key and not new_settings.gemini_api_key.endswith("***"):
-        current.gemini_api_key = new_settings.gemini_api_key
+        current.gemini_api_key = new_settings.gemini_api_key.strip()
     if new_settings.supabase_url:
-        current.supabase_url = new_settings.supabase_url
+        current.supabase_url = new_settings.supabase_url.strip()
     if new_settings.supabase_service_key and not new_settings.supabase_service_key.endswith("***"):
-        current.supabase_service_key = new_settings.supabase_service_key
+        current.supabase_service_key = new_settings.supabase_service_key.strip()
         
     settings_service.save_settings(current)
     return {"status": "success", "message": "Settings updated"}
@@ -63,7 +62,7 @@ async def test_provider(provider: str):
             raise HTTPException(status_code=400, detail="Key not set")
         try:
             genai.configure(api_key=key)
-            genai.get_model('models/gemini-1.5-flash')
+            list(genai.list_models())
             return {"status": "success", "message": "Gemini connection successful"}
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Gemini test failed: {str(e)}")

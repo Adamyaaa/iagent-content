@@ -47,9 +47,11 @@ class SettingsService:
         # Supabase URL and Key are now strictly env variables, we don't save them in the DB.
 
     def get_groq_key(self):
-        return self.load_settings().groq_api_key
+        val = self.load_settings().groq_api_key
+        return val.strip() if val else val
 
     def get_gemini_key(self):
-        return self.load_settings().gemini_api_key
+        val = self.load_settings().gemini_api_key
+        return val.strip() if val else val
 
 settings_service = SettingsService()
