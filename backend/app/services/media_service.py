@@ -2,11 +2,15 @@ import os
 import yt_dlp
 import subprocess
 import logging
+import imageio_ffmpeg
 from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
 class MediaService:
+    def __init__(self):
+        self.ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+
     def download_video(self, url: str, output_dir: str) -> Dict[str, Any]:
         """
         Downloads a video using yt-dlp and extracts metadata.
@@ -19,7 +23,8 @@ class MediaService:
             'outtmpl': output_template,
             'quiet': True,
             'no_warnings': True,
-            'merge_output_format': 'mp4'
+            'merge_output_format': 'mp4',
+            'ffmpeg_location': self.ffmpeg_path
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -48,7 +53,7 @@ class MediaService:
         output_path = output_path.replace('.wav', '.mp3')
         logger.info(f"Extracting audio to {output_path}")
         command = [
-            'ffmpeg', '-y', '-i', video_path, 
+            self.ffmpeg_path, '-y', '-i', video_path, 
             '-vn', '-acodec', 'libmp3lame', '-q:a', '4', 
             output_path
         ]
@@ -75,7 +80,7 @@ class MediaService:
             
             # Extract a single frame at the specific timestamp
             command = [
-                'ffmpeg', '-y', '-ss', str(timestamp), '-i', video_path,
+                self.ffmpeg_path, '-y', '-ss', str(timestamp), '-i', video_path,
                 '-vframes', '1', '-q:v', '2', output_path
             ]
             
