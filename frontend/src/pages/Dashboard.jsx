@@ -72,7 +72,7 @@ export default function Dashboard() {
           >
             <option value="youtube">YouTube</option>
             <option value="instagram">Instagram Reel</option>
-            <option value="tiktok">TikTok</option>
+            <option value="linkedin">LinkedIn</option>
           </select>
           
           <div className="flex-1 relative">
@@ -81,7 +81,7 @@ export default function Dashboard() {
             </div>
             <input 
               type="url" 
-              placeholder="Paste URL..."
+              placeholder="Paste a YouTube, Instagram, or LinkedIn URL..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
