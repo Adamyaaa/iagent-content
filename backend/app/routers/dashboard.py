@@ -38,6 +38,18 @@ async def get_queue():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/queue/{queue_id}")
+async def delete_queue_item(queue_id: str):
+    client = supabase_db.get_client()
+    if not client:
+        raise HTTPException(status_code=503, detail="Database not configured")
+        
+    try:
+        res = client.table("trend_queue").delete().eq("id", queue_id).execute()
+        return {"status": "success", "message": "Item deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/concepts")
 async def get_concepts():
     client = supabase_db.get_client()

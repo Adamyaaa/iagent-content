@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ingestUrl, getQueue } from '../services/api';
-import { Play, Loader2, Link as LinkIcon, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ingestUrl, getQueue, deleteQueueItem } from '../services/api';
+import { Play, Loader2, Link as LinkIcon, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 
 export default function Dashboard() {
   const [url, setUrl] = useState('');
@@ -38,6 +38,16 @@ export default function Dashboard() {
       setMessage('Failed to submit URL.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this item?')) return;
+    try {
+      await deleteQueueItem(id);
+      fetchQueue();
+    } catch (e) {
+      console.error("Failed to delete", e);
     }
   };
 
@@ -101,11 +111,12 @@ export default function Dashboard() {
                 <th className="px-6 py-4 font-medium">Source URL</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Started</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {queue.map((item) => (
-                <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 group">
                   <td className="px-6 py-4 truncate max-w-xs">
                     <a href={item.source_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
                       {item.source_url}
@@ -118,6 +129,15 @@ export default function Dashboard() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {new Date(item.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => handleDelete(item.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </td>
                 </tr>
               ))}

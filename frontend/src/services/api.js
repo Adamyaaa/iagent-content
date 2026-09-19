@@ -17,6 +17,11 @@ export const getQueue = async () => {
   return response.data;
 };
 
+export const deleteQueueItem = async (queueId) => {
+  const response = await axios.delete(`${API_URL}/dashboard/queue/${queueId}`);
+  return response.data;
+};
+
 export const getConcepts = async () => {
   const response = await axios.get(`${API_URL}/dashboard/concepts`);
   return response.data;
