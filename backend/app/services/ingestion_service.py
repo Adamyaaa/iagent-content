@@ -105,7 +105,8 @@ class IngestionService:
         except Exception as e:
             logger.error(f"Error during ingestion for {url}: {e}")
             if client:
-                client.table("trend_queue").update({"status": "rejected"}).eq("id", queue_id).execute()
+                error_msg = f"FAILED: {str(e)}"[:200]
+                client.table("trend_queue").update({"status": "rejected", "source_url": error_msg}).eq("id", queue_id).execute()
             raise e
 
 ingestion_service = IngestionService()
