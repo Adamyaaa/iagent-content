@@ -1,0 +1,145 @@
+import json
+import logging
+from typing import Dict, Any, Optional
+import google.generativeai as genai
+from ..services.settings_service import settings_service
+from ..models.domain import ContentConcept, SceneBreakdown
+from .qa_service import qa_service
+
+logger = logging.getLogger(__name__)
+
+class GenerationService:
+    def __init__(self):
+        self.model_name = 'gemini-1.5-pro'
+
+    def _configure_genai(self):
+        key = settings_service.get_gemini_key()
+        if key:
+            genai.configure(api_key=key)
+            return True
+        return False
+
+    def generate_concept(self, extracted_pattern: str, topic_context: str = "", feedback: str = "") -> ContentConcept:
+        """
+        Generates a completely new concept based on the pattern, tailored to iAgent Solutions.
+        """
+        if not self._configure_genai():
+            logger.warning("GEMINI_API_KEY not set. Returning a mock concept.")
+            return ContentConcept(
+                title="Mock Concept", content_angle="Mock Angle", hook="Mock Hook",
+                problem="Mock Problem", body="Mock Body", insight="Mock Insight",
+                cta="Mock CTA", target_audience="Founders", platform="LinkedIn",
+                estimated_duration="30s", scene_breakdown=[
+                    SceneBreakdown(
+                        scene_number=1, duration_seconds=5.0, voiceover="Test",
+                        on_screen_text="Test", visual_description="Test",
+                        camera_direction="Test", b_roll_suggestion="Test"
+                    )
+                ]
+            )
+
+        logger.info("Generating new concept via Gemini.")
+        model = genai.GenerativeModel(self.model_name)
+        
+        prompt = f"""
+        You are the Lead Content Architect for 'iAgent Solutions' (based in Hyderabad, India).
+        We build AI agents, enterprise chatbots, and automation systems for Indian businesses.
+        Our brand voice is Intelligent, Confident, Business-focused, Direct, and Practical.
+        
+        Using the following viral content pattern, generate an ORIGINAL short-form video concept tailored to iAgent Solutions.
+        Do NOT copy the original content. Only use the abstract psychological structure.
+        
+        Extracted Pattern:
+        {extracted_pattern}
+        
+        Additional Context/Topic:
+        {topic_context}
+        
+        Previous Feedback to incorporate (if any, specifically fix these issues):
+        {feedback}
+        
+        Generate the concept returning ONLY a JSON object that STRICTLY matches this schema:
+        {{
+            "title": "String",
+            "content_angle": "String",
+            "hook": "String",
+            "problem": "String",
+            "body": "String",
+            "insight": "String",
+            "cta": "String (e.g. 'Want to automate this workflow? Talk to us.')",
+            "target_audience": "String (e.g. 'SME Owners')",
+            "platform": "String (e.g. 'Instagram Reels')",
+            "estimated_duration": "String",
+            "scene_breakdown": [
+                {{
+                    "scene_number": 1,
+                    "duration_seconds": 3.5,
+                    "voiceover": "String",
+                    "on_screen_text": "String",
+                    "visual_description": "String",
+                    "camera_direction": "String",
+                    "b_roll_suggestion": "String"
+                }}
+            ]
+        }}
+        """
+        
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith('```json'): 
+            text = text[7:-3].strip()
+        elif text.startswith('```'): 
+            text = text[3:-3].strip()
+        
+        try:
+            data = json.loads(text)
+            return ContentConcept(**data)
+        except Exception as e:
+            logger.error(f"Failed to parse Concept generation response: {e}")
+            raise e
+
+    def generate_with_revisions(self, extracted_pattern: str, topic_context: str = "") -> Dict[str, Any]:
+        """
+        Generates a concept and runs it through the Brand QA critic.
+        Revises up to 3 times if the overall score is below 80.
+        """
+        max_revisions = 3
+        feedback = ""
+        history = []
+        
+        for attempt in range(1, max_revisions + 1):
+            logger.info(f"Generation Attempt {attempt} / {max_revisions}")
+            
+            # Generate script and scenes
+            concept = self.generate_concept(extracted_pattern, topic_context, feedback)
+            
+            # QA Evaluation
+            qa_score = qa_service.evaluate_concept(concept)
+            
+            history.append({
+                "attempt": attempt,
+                "concept": concept.model_dump(),
+                "qa_score": qa_score.model_dump()
+            })
+            
+            if qa_score.approved:
+                logger.info(f"Concept approved on attempt {attempt} with score {qa_score.overall_score}")
+                return {
+                    "approved": True,
+                    "final_concept": concept,
+                    "final_score": qa_score,
+                    "history": history
+                }
+                
+            logger.warning(f"Concept rejected with score {qa_score.overall_score}. Needs revision.")
+            feedback = f"Issues: {', '.join(qa_score.issues)}. Improvements needed: {', '.join(qa_score.improvements)}."
+            
+        logger.error(f"Failed to generate an approved concept after {max_revisions} revisions.")
+        return {
+            "approved": False,
+            "final_concept": concept,
+            "final_score": qa_score,
+            "history": history
+        }
+
+generation_service = GenerationService()
