@@ -46,6 +46,7 @@ class GenerationService:
         You are the Lead Content Architect for 'iAgent Labs' (based in Hyderabad, India).
         We build AI agents, enterprise chatbots, and automation systems for Indian businesses.
         Our brand voice is Intelligent, Confident, Business-focused, Direct, and Practical.
+        Do NOT use emojis anywhere in the concept, titles, or scripts - maintain an executive, human tone.
         
         Using the following viral content pattern, generate an ORIGINAL short-form video concept tailored to iAgent Labs.
         Do NOT copy the original content. Only use the abstract psychological structure.
@@ -137,7 +138,7 @@ class GenerationService:
             li_prompt = f"""
             You are an expert LinkedIn ghostwriter for B2B AI agencies.
             Transform this core video concept into two LinkedIn formats:
-            1. A long-form text post that captures attention and drives professional engagement.
+            1. A long-form text post that captures attention and drives professional engagement without emojis.
             2. An outline for a 5-slide PDF carousel that breaks down the core problem/solution.
             
             Core Concept Hook: {core_concept.hook}
@@ -158,10 +159,10 @@ class GenerationService:
             # Instagram
             ig_model = genai.GenerativeModel(self.model_name)
             ig_prompt = f"""
-            You are an expert Instagram growth hacker.
+            You are an expert Instagram content strategist for B2B founders.
             Transform this core video concept into two visual formats:
-            1. An infographic caption (heavy on emojis, whitespace, and aggressive SEO hashtags).
-            2. An interactive IG Story idea (like a poll, quiz, or "this or that") to drive engagement.
+            1. An infographic caption with clean whitespace, strong takeaways, and targeted SEO hashtags. Strictly do NOT use emojis so the copy feels human and executive.
+            2. An interactive IG Story idea (like a poll, quiz, or 'this or that') to drive engagement.
             
             Core Concept Hook: {core_concept.hook}
             Core Concept Insight: {core_concept.insight}
@@ -182,7 +183,7 @@ class GenerationService:
             wa_prompt = f"""
             You are an expert WhatsApp community manager for B2B founders.
             Transform this core video concept into WhatsApp-native formats:
-            1. A broadcast message (max 3 sentences) with *bolding* and emojis, teasing a link.
+            1. A broadcast message (max 3 sentences) with *bolding* for readability, teasing a link. Strictly do NOT use emojis.
             2. A community poll idea (with options) that sparks debate around the core problem.
             
             Core Concept Hook: {core_concept.hook}

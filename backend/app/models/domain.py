@@ -59,11 +59,11 @@ class LinkedInIdeation(BaseModel):
     carousel_outline: List[str] = Field(description="A 5-slide outline for a PDF document post")
 
 class InstagramIdeation(BaseModel):
-    infographic_caption: str = Field(description="An emoji-rich caption with aggressive SEO hashtags")
+    infographic_caption: str = Field(description="A clean, authoritative caption with targeted SEO hashtags, without emojis")
     story_idea: str = Field(description="An interactive IG Story idea (e.g. poll or quiz)")
 
 class WhatsAppIdeation(BaseModel):
-    broadcast_message: str = Field(description="A short, punchy 2-sentence hook with *bolding* and emojis")
+    broadcast_message: str = Field(description="A short, punchy 2-sentence hook with bolding for emphasis, strictly without emojis")
     community_poll: str = Field(description="A multiple-choice poll idea based on the core problem")
 
 class GenerationResult(BaseModel):

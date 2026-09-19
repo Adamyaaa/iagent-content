@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getConcepts } from '../services/api';
-import { FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileText, CheckCircle2, AlertCircle, Video, Briefcase, Camera, MessageCircle } from 'lucide-react';
 
 export default function ContentLibrary() {
   const [concepts, setConcepts] = useState([]);
@@ -64,30 +64,34 @@ export default function ContentLibrary() {
               <div className="flex gap-6 border-b border-gray-200">
                 <button 
                   onClick={() => setActiveTab('core')}
-                  className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'core' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`pb-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${activeTab === 'core' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
                 >
-                  🎬 Core Video
+                  <Video size={16} />
+                  Core Video
                   {activeTab === 'core' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-accent rounded-t-full"></span>}
                 </button>
                 <button 
                   onClick={() => setActiveTab('linkedin')}
-                  className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'linkedin' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`pb-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${activeTab === 'linkedin' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
                 >
-                  💼 LinkedIn
+                  <Briefcase size={16} />
+                  LinkedIn
                   {activeTab === 'linkedin' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-accent rounded-t-full"></span>}
                 </button>
                 <button 
                   onClick={() => setActiveTab('instagram')}
-                  className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'instagram' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`pb-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${activeTab === 'instagram' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
                 >
-                  📸 Instagram
+                  <Camera size={16} />
+                  Instagram
                   {activeTab === 'instagram' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-accent rounded-t-full"></span>}
                 </button>
                 <button 
                   onClick={() => setActiveTab('whatsapp')}
-                  className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'whatsapp' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
+                  className={`pb-3 font-medium text-sm transition-colors relative flex items-center gap-2 ${activeTab === 'whatsapp' ? 'text-accent' : 'text-gray-500 hover:text-gray-900'}`}
                 >
-                  💬 WhatsApp
+                  <MessageCircle size={16} />
+                  WhatsApp
                   {activeTab === 'whatsapp' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-accent rounded-t-full"></span>}
                 </button>
               </div>
@@ -151,14 +155,14 @@ export default function ContentLibrary() {
                     <>
                       <section className="bg-[#f0f6fc] border border-[#d1e4f9] rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-[#0a66c2] uppercase tracking-wider mb-4 flex items-center gap-2">
-                          📝 The Text Post
+                          The Text Post
                         </h3>
                         <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{selected.linkedin_ideation.text_post}</p>
                       </section>
                       
                       <section className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
                         <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-4">
-                          📄 PDF Carousel Outline (5 Slides)
+                          PDF Carousel Outline (5 Slides)
                         </h3>
                         <div className="space-y-4">
                           {selected.linkedin_ideation.carousel_outline?.map((slide, i) => (
@@ -184,14 +188,14 @@ export default function ContentLibrary() {
                     <>
                       <section className="bg-gradient-to-br from-pink-50 to-orange-50 border border-orange-100 rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-pink-600 uppercase tracking-wider mb-4">
-                          🎨 Infographic Caption
+                          Infographic Caption
                         </h3>
                         <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{selected.instagram_ideation.infographic_caption}</p>
                       </section>
                       
                       <section className="bg-gray-900 text-white rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-                          📱 IG Story Interactive Idea
+                          IG Story Interactive Idea
                         </h3>
                         <p className="text-gray-100 leading-relaxed text-lg">{selected.instagram_ideation.story_idea}</p>
                       </section>
@@ -209,14 +213,14 @@ export default function ContentLibrary() {
                       <section className="bg-[#e8fce8] border border-[#a6f0af] rounded-xl p-6 relative">
                         <div className="absolute top-4 right-4 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest">Broadcast</div>
                         <h3 className="text-sm font-semibold text-green-800 uppercase tracking-wider mb-4">
-                          📣 WhatsApp Broadcast
+                          WhatsApp Broadcast
                         </h3>
                         <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{selected.whatsapp_ideation.broadcast_message}</p>
                       </section>
                       
                       <section className="bg-white border-2 border-gray-100 rounded-xl p-6">
                         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                          📊 Community Poll
+                          Community Poll
                         </h3>
                         <p className="text-gray-800 leading-relaxed font-medium text-lg">{selected.whatsapp_ideation.community_poll}</p>
                       </section>
