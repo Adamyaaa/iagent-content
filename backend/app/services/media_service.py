@@ -19,7 +19,8 @@ class MediaService:
             'outtmpl': output_template,
             'quiet': True,
             'no_warnings': True,
-            'merge_output_format': 'mp4'
+            'merge_output_format': 'mp4',
+            'extractor_args': {'youtube': {'player_client': ['android', 'web']}}
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
