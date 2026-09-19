@@ -45,6 +45,12 @@ export default function Settings() {
     setSavingState(prev => ({ ...prev, [id]: action }));
     
     try {
+      if (action === 'test') {
+        const response = await axios.post(`${API_URL}/settings/test/${id}`);
+        alert(`✅ Success: ${response.data.message}`);
+        return;
+      }
+
       const payload = { ...settings };
       
       if (action === 'save') {
@@ -53,11 +59,12 @@ export default function Settings() {
         payload[id] = '';
       }
       
-      // We send the whole object but only the updated fields are processed backend
       await axios.post(`${API_URL}/settings/`, payload);
       await fetchSettings();
     } catch (e) {
       console.error(e);
+      const errorMsg = e.response?.data?.detail || e.message;
+      alert(`❌ Error: ${errorMsg}`);
     } finally {
       setSavingState(prev => ({ ...prev, [id]: null }));
     }
@@ -143,10 +150,11 @@ export default function Settings() {
                 </button>
                 
                 <button 
-                  onClick={() => alert("Test functionality coming soon")}
-                  className="px-6 py-2.5 bg-white border border-gray-200/80 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  onClick={() => handleAction(provider.id, 'test')}
+                  disabled={!isConnected || isProcessingSave || isProcessingRemove || savingState[provider.id] === 'test'}
+                  className="px-6 py-2.5 bg-white border border-gray-200/80 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 min-w-[80px] flex justify-center items-center"
                 >
-                  Test
+                  {savingState[provider.id] === 'test' ? <Loader2 size={16} className="animate-spin" /> : "Test"}
                 </button>
                 
                 <button 

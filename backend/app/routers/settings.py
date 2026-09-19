@@ -39,3 +39,33 @@ async def update_settings(new_settings: AppSettings):
         
     settings_service.save_settings(current)
     return {"status": "success", "message": "Settings updated"}
+
+@router.post("/test/{provider}")
+async def test_provider(provider: str):
+    from fastapi import HTTPException
+    
+    if provider == "groq_api_key":
+        from groq import Groq
+        key = settings_service.get_groq_key()
+        if not key:
+            raise HTTPException(status_code=400, detail="Key not set")
+        try:
+            client = Groq(api_key=key)
+            client.models.list()
+            return {"status": "success", "message": "Groq connection successful"}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Groq test failed: {str(e)}")
+            
+    elif provider == "gemini_api_key":
+        import google.generativeai as genai
+        key = settings_service.get_gemini_key()
+        if not key:
+            raise HTTPException(status_code=400, detail="Key not set")
+        try:
+            genai.configure(api_key=key)
+            genai.get_model('models/gemini-1.5-flash')
+            return {"status": "success", "message": "Gemini connection successful"}
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Gemini test failed: {str(e)}")
+            
+    raise HTTPException(status_code=400, detail="Unknown provider")
