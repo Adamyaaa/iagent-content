@@ -1,7 +1,6 @@
 import os
 import uuid
 import logging
-import aiofiles
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
 from ..models.api import IngestUrlRequest, IngestUrlResponse
 from ..services.ingestion_service import ingestion_service
@@ -38,16 +37,16 @@ async def ingest_upload(
     file: UploadFile = File(...),
     source_platform: str = Form("youtube")
 ):
+    import shutil
+    
     queue_id = str(uuid.uuid4())
     temp_dir = os.path.join(os.getcwd(), 'app', 'temp', queue_id)
     os.makedirs(temp_dir, exist_ok=True)
     video_path = os.path.join(temp_dir, file.filename)
     
-    # Save the file
     try:
-        async with aiofiles.open(video_path, 'wb') as out_file:
-            content = await file.read()
-            await out_file.write(content)
+        with open(video_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
         
