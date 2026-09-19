@@ -1,4 +1,4 @@
-# iAgent Solutions Content OS
+# iAgent's Content OS
 
 ## Architecture Overview
 The Content OS is designed as a modular, asynchronous system focused on scalability, data integrity, and strict separation of concerns.
