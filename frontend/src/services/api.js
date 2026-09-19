@@ -38,3 +38,8 @@ export const getConcepts = async () => {
   const response = await axios.get(`${API_URL}/dashboard/concepts`);
   return response.data;
 };
+
+export const deleteConcept = async (conceptId) => {
+  const response = await axios.delete(`${API_URL}/dashboard/concepts/${conceptId}`);
+  return response.data;
+};

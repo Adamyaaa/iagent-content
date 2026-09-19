@@ -62,3 +62,15 @@ async def get_concepts():
         return res.data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/concepts/{concept_id}")
+async def delete_concept(concept_id: str):
+    client = supabase_db.get_client()
+    if not client:
+        raise HTTPException(status_code=503, detail="Database not configured")
+        
+    try:
+        res = client.table("content_concepts").delete().eq("id", concept_id).execute()
+        return {"status": "success", "message": "Concept deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

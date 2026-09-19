@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getConcepts } from '../services/api';
-import { FileText, CheckCircle2, AlertCircle, Video, Briefcase, Camera, MessageCircle } from 'lucide-react';
+import { getConcepts, deleteConcept } from '../services/api';
+import { FileText, CheckCircle2, AlertCircle, Video, Briefcase, Camera, MessageCircle, Trash2 } from 'lucide-react';
 
 export default function ContentLibrary() {
   const [concepts, setConcepts] = useState([]);
   const [selected, setSelected] = useState(null);
   const [activeTab, setActiveTab] = useState('core'); // 'core', 'linkedin', 'instagram', 'whatsapp'
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     fetchConcepts();
@@ -15,8 +16,37 @@ export default function ContentLibrary() {
     try {
       const data = await getConcepts();
       setConcepts(data);
+      if (data && data.length > 0) {
+        setSelected(prev => {
+          if (!prev) return data[0];
+          const exists = data.find(c => c.id === prev.id);
+          return exists || data[0];
+        });
+      } else {
+        setSelected(null);
+      }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleDelete = async (conceptId, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm('Are you sure you want to remove this concept?')) return;
+    
+    setDeletingId(conceptId);
+    try {
+      await deleteConcept(conceptId);
+      const remaining = concepts.filter(c => c.id !== conceptId);
+      setConcepts(remaining);
+      if (selected?.id === conceptId) {
+        setSelected(remaining.length > 0 ? remaining[0] : null);
+      }
+    } catch (err) {
+      console.error('Failed to delete concept:', err);
+      alert('Failed to delete concept. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -24,17 +54,28 @@ export default function ContentLibrary() {
     <div className="h-[calc(100vh-4rem)] flex gap-6">
       {/* List View */}
       <div className="w-1/3 flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-4 border-b border-gray-100 bg-gray-50">
+        <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
           <h2 className="font-medium">Generated Concepts</h2>
+          <span className="text-xs text-gray-500 font-medium">{concepts.length} total</span>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {concepts.map((c) => (
             <div 
               key={c.id} 
               onClick={() => { setSelected(c); setActiveTab('core'); }}
-              className={`p-4 rounded-lg cursor-pointer border transition-colors ${selected?.id === c.id ? 'border-accent bg-orange-50/30' : 'border-gray-100 hover:border-gray-300'}`}
+              className={`p-4 rounded-lg cursor-pointer border transition-all group relative ${selected?.id === c.id ? 'border-accent bg-orange-50/30' : 'border-gray-100 hover:border-gray-300'}`}
             >
-              <h3 className="font-medium text-sm mb-2">{c.title}</h3>
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <h3 className="font-medium text-sm leading-snug line-clamp-2">{c.title}</h3>
+                <button
+                  onClick={(e) => handleDelete(c.id, e)}
+                  disabled={deletingId === c.id}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded shrink-0"
+                  title="Remove Concept"
+                >
+                  <Trash2 size={14} className={deletingId === c.id ? "animate-spin" : ""} />
+                </button>
+              </div>
               <div className="flex justify-between items-center text-xs text-gray-500">
                 <span>{new Date(c.created_at).toLocaleDateString()}</span>
                 {c.approval_status ? (
@@ -55,9 +96,20 @@ export default function ContentLibrary() {
           <>
             {/* Header */}
             <div className="p-8 pb-0">
-              <div className="flex items-center gap-3 mb-6">
-                <FileText className="text-accent" size={28} />
-                <h1 className="text-2xl font-semibold">{selected.title}</h1>
+              <div className="flex items-start justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <FileText className="text-accent shrink-0" size={28} />
+                  <h1 className="text-2xl font-semibold">{selected.title}</h1>
+                </div>
+                <button
+                  onClick={() => handleDelete(selected.id)}
+                  disabled={deletingId === selected.id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors shrink-0"
+                  title="Remove this concept"
+                >
+                  <Trash2 size={14} className={deletingId === selected.id ? "animate-spin" : ""} />
+                  Remove
+                </button>
               </div>
               
               {/* Tab Navigation */}
