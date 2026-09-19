@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: iagent-content-backend
+    env: docker
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    disk:
+      name: data-disk
+      mountPath: /app/data
+      sizeGB: 1
