@@ -105,7 +105,80 @@ class IngestionService:
         except Exception as e:
             logger.error(f"Error during ingestion for {url}: {e}")
             if client:
-                error_msg = f"FAILED: {str(e)}"[:200]
+                error_msg = f"FAILED: ERROR: {str(e)}"[:200]
+                client.table("trend_queue").update({"status": "rejected", "source_url": error_msg}).eq("id", queue_id).execute()
+            raise e
+
+    def process_local_file(self, queue_id: str, video_path: str, filename: str, platform: str = "youtube") -> Dict[str, Any]:
+        """
+        Orchestrates the ingestion pipeline for a locally uploaded file and persists to Supabase.
+        """
+        temp_dir = os.path.dirname(video_path)
+        client = supabase_db.client
+
+        try:
+            if client:
+                client.table("trend_queue").update({"status": "analyzing"}).eq("id", queue_id).execute()
+
+            from moviepy.editor import VideoFileClip
+            clip = VideoFileClip(video_path)
+            duration = clip.duration
+            clip.close()
+
+            video_meta = {
+                "title": filename,
+                "duration": duration,
+                "resolution": "Unknown",
+                "frame_rate": 30,
+                "video_path": video_path
+            }
+
+            # Extract audio and frames
+            audio_path = os.path.join(temp_dir, 'audio.mp3')
+            audio_path = media_service.extract_audio(video_path, audio_path)
+            frames_dir = os.path.join(temp_dir, 'frames')
+            frame_paths = media_service.extract_frames(
+                video_path=video_path, output_dir=frames_dir, duration=duration
+            )
+
+            transcript = transcription_service.transcribe_audio(audio_path)
+            analysis = gemini_service.analyze_content(frame_paths, transcript, video_meta, platform)
+            
+            pattern = analysis.get("core_message", "") or analysis.get("hook", "")
+            if client:
+                client.table("trend_queue").update({
+                    "status": "generating",
+                    "topic": filename,
+                    "content_pattern": pattern
+                }).eq("id", queue_id).execute()
+
+            generation = gemini_service.generate_content(pattern, platform)
+            concept = generation.get("concept")
+            qa_score = generation.get("qa_score")
+            
+            ideations = gemini_service.generate_platform_ideations(concept)
+
+            if client and concept:
+                client.table("content_concepts").insert({
+                    "queue_id": queue_id,
+                    "title": concept.title,
+                    "generated_concept": concept.model_dump(),
+                    "scene_breakdowns": [s.model_dump() for s in concept.scene_breakdown],
+                    "linkedin_ideation": ideations.get("linkedin", {}),
+                    "instagram_ideation": ideations.get("instagram", {}),
+                    "whatsapp_ideation": ideations.get("whatsapp", {}),
+                    "qa_scores": qa_score.model_dump() if qa_score else {},
+                    "approval_status": qa_score.approved if qa_score else False
+                }).execute()
+                
+                client.table("trend_queue").update({"status": "generated"}).eq("id", queue_id).execute()
+
+            return {"queue_id": queue_id, "status": "success", "metadata": video_meta}
+
+        except Exception as e:
+            logger.error(f"Error during local file ingestion for {filename}: {e}")
+            if client:
+                error_msg = f"FAILED: ERROR: {str(e)}"[:200]
                 client.table("trend_queue").update({"status": "rejected", "source_url": error_msg}).eq("id", queue_id).execute()
             raise e
 

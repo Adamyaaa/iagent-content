@@ -9,6 +9,8 @@ export default function Dashboard() {
   const [queue, setQueue] = useState([]);
   const [message, setMessage] = useState('');
 
+  const [uploadFile, setUploadFile] = useState(null);
+
   const fetchQueue = async () => {
     try {
       const data = await getQueue();
@@ -41,6 +43,25 @@ export default function Dashboard() {
     }
   };
 
+  const handleUploadSubmit = async (e) => {
+    e.preventDefault();
+    if (!uploadFile) return;
+    setLoading(true);
+    setMessage('');
+    try {
+      // Assuming ingestUpload is added to api.js
+      const { ingestUpload } = await import('../services/api');
+      await ingestUpload(uploadFile, platform);
+      setMessage('File uploaded successfully! Pipeline started.');
+      setUploadFile(null);
+      fetchQueue();
+    } catch (error) {
+      setMessage('Failed to upload file.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to remove this item?')) return;
     try {
@@ -64,7 +85,7 @@ export default function Dashboard() {
       <h2 className="text-3xl font-light mb-8">Process Content</h2>
       
       <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
-        <form onSubmit={handleSubmit} className="flex gap-4">
+        <form onSubmit={handleSubmit} className="flex gap-4 mb-4">
           <select 
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
@@ -85,18 +106,43 @@ export default function Dashboard() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
-              required
             />
           </div>
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || !url}
             className="bg-foreground text-background px-8 py-4 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center gap-2 disabled:opacity-50"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
             Process
           </button>
         </form>
+
+        <div className="relative flex items-center py-2">
+          <div className="flex-grow border-t border-gray-200"></div>
+          <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">OR</span>
+          <div className="flex-grow border-t border-gray-200"></div>
+        </div>
+
+        <form onSubmit={handleUploadSubmit} className="flex gap-4 mt-4">
+          <div className="flex-1">
+            <input 
+              type="file" 
+              accept="video/mp4,video/quicktime,video/webm"
+              onChange={(e) => setUploadFile(e.target.files[0])}
+              className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300"
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading || !uploadFile}
+            className="bg-accent text-white px-8 py-4 rounded-lg font-medium hover:bg-accent/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : <Play size={20} />}
+            Upload & Process
+          </button>
+        </form>
+
         {message && <p className="mt-4 text-sm text-gray-600">{message}</p>}
       </div>
 

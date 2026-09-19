@@ -7,6 +7,18 @@ export const ingestUrl = async (url, platform) => {
   return response.data;
 };
 
+export const ingestUpload = async (file, platform) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('source_platform', platform);
+  const response = await axios.post(`${API_URL}/ingest/upload`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
 export const getStats = async () => {
   const response = await axios.get(`${API_URL}/dashboard/stats`);
   return response.data;
