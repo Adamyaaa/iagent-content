@@ -2,11 +2,70 @@ import os
 import yt_dlp
 import subprocess
 import logging
+import requests
 from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
 class MediaService:
+    def download_social_video(self, url: str, output_dir: str) -> str:
+        """
+        The 3-Layer Waterfall Downloader.
+        Layer 1: RapidAPI Instagram (if applicable & key present)
+        Layer 2: Cobalt API (co.wuk.sh)
+        Layer 3: yt-dlp fallback
+        Returns the path to the downloaded .mp4 file.
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        video_path = os.path.join(output_dir, 'video.mp4')
+        
+        # Layer 1: Dedicated API (Instagram)
+        if "instagram.com" in url and os.getenv("RAPIDAPI_KEY"):
+            logger.info("Layer 1: Trying RapidAPI for Instagram")
+            try:
+                headers = {
+                    "X-RapidAPI-Key": os.getenv("RAPIDAPI_KEY"),
+                    "X-RapidAPI-Host": "instagram-scraper-api2.p.rapidapi.com"
+                }
+                # Example request, we fall through if it fails since actual endpoint may vary
+                raise Exception("RapidAPI Layer not fully implemented - falling back")
+            except Exception as e:
+                logger.warning(f"Layer 1 failed: {e}")
+
+        # Layer 2: Cobalt API (co.wuk.sh)
+        logger.info("Layer 2: Trying Cobalt API")
+        try:
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "url": url,
+                "videoQuality": "1080"
+            }
+            cobalt_url = "https://co.wuk.sh/api/json"
+            response = requests.post(cobalt_url, json=payload, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if "url" in data:
+                    direct_url = data["url"]
+                    logger.info("Cobalt API returned direct URL. Downloading stream...")
+                    video_resp = requests.get(direct_url, stream=True)
+                    video_resp.raise_for_status()
+                    with open(video_path, 'wb') as f:
+                        for chunk in video_resp.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    return video_path
+            logger.warning(f"Layer 2 failed with status {response.status_code}: {response.text}")
+        except Exception as e:
+            logger.warning(f"Layer 2 failed: {e}")
+
+        # Layer 3: yt-dlp - The Ultimate Net
+        logger.info("Layer 3: Falling back to yt-dlp")
+        meta = self.download_video(url, output_dir)
+        return meta['video_path']
+
     def download_video(self, url: str, output_dir: str) -> Dict[str, Any]:
         """
         Downloads a video using yt-dlp and extracts metadata.
