@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
-export const ingestUrl = async (url) => {
-  const response = await axios.post(`${API_URL}/ingest/`, { url });
+export const ingestUrl = async (url, platform) => {
+  const response = await axios.post(`${API_URL}/ingest/`, { url, source_platform: platform });
   return response.data;
 };
 

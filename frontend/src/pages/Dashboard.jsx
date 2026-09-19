@@ -4,6 +4,7 @@ import { Play, Loader2, Link as LinkIcon, CheckCircle2, AlertCircle } from 'luci
 
 export default function Dashboard() {
   const [url, setUrl] = useState('');
+  const [platform, setPlatform] = useState('youtube');
   const [loading, setLoading] = useState(false);
   const [queue, setQueue] = useState([]);
   const [message, setMessage] = useState('');
@@ -29,7 +30,7 @@ export default function Dashboard() {
     setLoading(true);
     setMessage('');
     try {
-      await ingestUrl(url);
+      await ingestUrl(url, platform);
       setMessage('URL submitted successfully! Pipeline started.');
       setUrl('');
       fetchQueue();
@@ -54,13 +55,23 @@ export default function Dashboard() {
       
       <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8">
         <form onSubmit={handleSubmit} className="flex gap-4">
+          <select 
+            value={platform}
+            onChange={(e) => setPlatform(e.target.value)}
+            className="px-4 py-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all text-gray-700 font-medium"
+          >
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram Reel</option>
+            <option value="tiktok">TikTok</option>
+          </select>
+          
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <LinkIcon className="text-gray-400" size={20} />
             </div>
             <input 
               type="url" 
-              placeholder="Paste a YouTube, Instagram, or TikTok URL..."
+              placeholder="Paste URL..."
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"

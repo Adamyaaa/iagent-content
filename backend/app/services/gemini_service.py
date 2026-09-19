@@ -19,7 +19,7 @@ class GeminiService:
             return True
         return False
 
-    def analyze_content(self, frame_paths: List[str], transcript: Transcript, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_content(self, frame_paths: List[str], transcript: Transcript, metadata: Dict[str, Any], platform: str = "youtube") -> Dict[str, Any]:
         """
         Takes 7 representative frames + transcript and reverse-engineers the video structure.
         """
@@ -42,6 +42,7 @@ class GeminiService:
             Reverse-engineer this video content.
             
             Video Metadata:
+            - Source Platform: {platform}
             - Duration: {metadata.get('duration')}s
             
             Transcript:

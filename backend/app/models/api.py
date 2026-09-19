@@ -5,6 +5,7 @@ class IngestUrlRequest(BaseModel):
     url: HttpUrl
     priority: int = 0
     source: str = "manual"
+    source_platform: str = "youtube"
 
 class IngestUrlResponse(BaseModel):
     message: str

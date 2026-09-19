@@ -11,7 +11,7 @@ from ..database.supabase_client import supabase_db
 logger = logging.getLogger(__name__)
 
 class IngestionService:
-    def process_url(self, url: str, queue_id: str) -> Dict[str, Any]:
+    def process_url(self, url: str, queue_id: str, platform: str = "youtube") -> Dict[str, Any]:
         """
         Orchestrates the ingestion pipeline for a given URL and persists to Supabase.
         """
@@ -46,7 +46,7 @@ class IngestionService:
             
             # 4-6. AI Analysis
             transcript = transcription_service.transcribe_audio(audio_path)
-            analysis = gemini_service.analyze_content(frame_paths, transcript, video_meta)
+            analysis = gemini_service.analyze_content(frame_paths, transcript, video_meta, platform)
             pattern = gemini_service.extract_pattern(analysis)
             
             logger.info(f"Successfully processed {url}. Extracted Pattern: {pattern}")

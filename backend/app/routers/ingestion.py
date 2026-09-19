@@ -11,12 +11,12 @@ router = APIRouter(
     tags=["Ingestion"]
 )
 
-def run_ingestion_pipeline(url: str, queue_id: str):
+def run_ingestion_pipeline(url: str, queue_id: str, platform: str):
     try:
         # Runs synchronously in the background task
         # In a real production setup, we might use Celery or Temporal.
         # BackgroundTasks is fine for this phase.
-        ingestion_service.process_url(url, queue_id)
+        ingestion_service.process_url(url, queue_id, platform)
     except Exception as e:
         logger.error(f"Background task failed for queue_id {queue_id}: {str(e)}")
 
@@ -31,7 +31,8 @@ async def ingest_url(request: IngestUrlRequest, background_tasks: BackgroundTask
     background_tasks.add_task(
         run_ingestion_pipeline, 
         url=str(request.url), 
-        queue_id=queue_id
+        queue_id=queue_id,
+        platform=request.source_platform
     )
     
     return IngestUrlResponse(
