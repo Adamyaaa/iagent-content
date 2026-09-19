@@ -103,9 +103,24 @@ class IngestionService:
                     logger.warning(f"Could not persist analysis to DB: {e}")
 
             # 6. Generate Concept with Brand QA revisions
+            source_problem = analysis.get("narrative_structure", {}).get("problem", "")
+            source_insight = analysis.get("narrative_structure", {}).get("insight", "")
+            source_hook = analysis.get("hook", "")
+            raw_transcript_text = transcript.transcript if hasattr(transcript, 'transcript') else str(transcript)
+            source_snippet = raw_transcript_text[:300].strip() if raw_transcript_text else ""
+            
+            dynamic_context = (
+                f"Source Content Reference: '{filename}'. "
+                f"Source Problem: '{source_problem}'. "
+                f"Source Core Insight: '{source_insight}'. "
+                f"Source Hook Angle: '{source_hook}'. "
+                f"Transcript Excerpt: '{source_snippet}'. "
+                f"Mission: Pivot and adapt this insight into a high-ROI AI agent, automation system, or chatbot solution specifically for Indian businesses and founders."
+            )
+            
             generation_result = generation_service.generate_with_revisions(
                 extracted_pattern=pattern,
-                topic_context="Enterprise AI Automation for Indian Businesses"
+                topic_context=dynamic_context
             )
             
             if client:

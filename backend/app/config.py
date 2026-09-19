@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""
     
     telegram_bot_token: str = ""
+    gemini_model: str = "gemini-flash-lite-latest"
     
     environment: str = "development"
     log_level: str = "INFO"

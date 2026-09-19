@@ -66,6 +66,11 @@ class WhatsAppIdeation(BaseModel):
     broadcast_message: str = Field(description="A short, punchy 2-sentence hook with bolding for emphasis, strictly without emojis")
     community_poll: str = Field(description="A multiple-choice poll idea based on the core problem")
 
+class PlatformIdeations(BaseModel):
+    linkedin: LinkedInIdeation
+    instagram: InstagramIdeation
+    whatsapp: WhatsAppIdeation
+
 class GenerationResult(BaseModel):
     final_concept: Optional[ContentConcept] = None
     final_score: Optional[QAScore] = None

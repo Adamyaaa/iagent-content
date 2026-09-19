@@ -62,8 +62,9 @@ async def test_provider(provider: str):
             raise HTTPException(status_code=400, detail="Key not set")
         try:
             genai.configure(api_key=key)
-            list(genai.list_models())
-            return {"status": "success", "message": "Gemini connection successful"}
+            model = genai.GenerativeModel("gemini-flash-lite-latest")
+            model.generate_content("ping")
+            return {"status": "success", "message": "Gemini connection and generation successful"}
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Gemini test failed: {str(e)}")
             

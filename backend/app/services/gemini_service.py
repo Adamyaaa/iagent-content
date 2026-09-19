@@ -3,6 +3,7 @@ import logging
 import json
 import os
 from typing import List, Dict, Any
+from PIL import Image
 from ..services.settings_service import settings_service
 from ..models.domain import Transcript
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class GeminiService:
     def __init__(self):
-        self.multimodal_model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        self.multimodal_model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 
     def _configure_genai(self):
         key = settings_service.get_gemini_key()
@@ -21,21 +22,23 @@ class GeminiService:
 
     def analyze_content(self, frame_paths: List[str], transcript: Transcript, metadata: Dict[str, Any], platform: str = "youtube") -> Dict[str, Any]:
         """
-        Takes 7 representative frames + transcript and reverse-engineers the video structure.
+        Takes representative frames + transcript and reverse-engineers the video structure.
         """
         if not self._configure_genai():
             logger.warning("GEMINI_API_KEY is not set. Returning a mock analysis.")
             return {"hook": "mock", "narrative_structure": {}, "emotional_trigger": "mock"}
 
-        logger.info("Uploading frames and analyzing content with Gemini Multimodal.")
+        logger.info("Analyzing content with Gemini Multimodal.")
         model = genai.GenerativeModel(self.multimodal_model_name)
         
-        uploaded_frames = []
         try:
+            loaded_frames = []
             for path in frame_paths:
-                # Upload files to Gemini API
-                img = genai.upload_file(path=path)
-                uploaded_frames.append(img)
+                try:
+                    if os.path.exists(path):
+                        loaded_frames.append(Image.open(path))
+                except Exception as e:
+                    logger.warning(f"Failed to open frame {path}: {e}")
                 
             prompt = f"""
             You are an expert AI Product Architect and Content Strategist.
@@ -75,8 +78,9 @@ class GeminiService:
             }}
             """
             
-            # Request generation passing prompt + list of File objects
-            response = model.generate_content([prompt] + uploaded_frames)
+            # Request generation passing prompt + list of PIL Image objects
+            content_payload = [prompt] + loaded_frames if loaded_frames else [prompt]
+            response = model.generate_content(content_payload)
             
             text = response.text.strip()
             # Clean up markdown JSON wrapper if present
@@ -113,14 +117,6 @@ class GeminiService:
                     "explicit_or_implicit": "Explicit"
                 }
             }
-            
-        finally:
-            # Cleanup uploaded files from Google servers
-            for img in uploaded_frames:
-                try:
-                    genai.delete_file(img.name)
-                except Exception as e:
-                    logger.warning(f"Failed to delete uploaded frame {img.name}: {e}")
 
     def extract_pattern(self, analysis: Dict[str, Any]) -> str:
         """

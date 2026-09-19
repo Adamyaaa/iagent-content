@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Dict, Any, List
 import google.generativeai as genai
-from ..models.domain import ContentConcept, SceneBreakdown, QAScore, GenerationResult, LinkedInIdeation, InstagramIdeation, WhatsAppIdeation
+from ..models.domain import ContentConcept, SceneBreakdown, QAScore, GenerationResult, LinkedInIdeation, InstagramIdeation, WhatsAppIdeation, PlatformIdeations
 from .settings_service import settings_service
 from .qa_service import qa_service
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class GenerationService:
     def __init__(self):
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 
     def _configure_genai(self):
         key = settings_service.get_gemini_key()
@@ -123,7 +123,8 @@ class GenerationService:
 
     def generate_platform_ideations(self, core_concept: ContentConcept, pattern: str) -> Dict[str, Any]:
         """
-        Takes the core concept and expands it into platform-specific ideation panels.
+        Takes the core concept and expands it into platform-specific ideation panels (LinkedIn, Instagram, WhatsApp)
+        in a single optimized LLM call to prevent rate limits and conserve quota.
         """
         if not self._configure_genai():
             return {}
@@ -131,77 +132,39 @@ class GenerationService:
         logger.info(f"Generating platform ideations for: {core_concept.title}")
         
         try:
-            ideations = {}
-            
-            # LinkedIn
-            li_model = genai.GenerativeModel(self.model_name)
-            li_prompt = f"""
-            You are an expert LinkedIn ghostwriter for B2B AI agencies.
-            Transform this core video concept into two LinkedIn formats:
-            1. A long-form text post that captures attention and drives professional engagement without emojis.
-            2. An outline for a 5-slide PDF carousel that breaks down the core problem/solution.
-            
+            model = genai.GenerativeModel(self.model_name)
+            prompt = f"""
+            You are an expert multi-channel B2B content strategist for 'iAgent Labs' (Hyderabad, India).
+            We build AI agents, chatbots, and automation systems for Indian businesses.
+            Tone: Intelligent, Confident, Direct, Practical, and Executive.
+            Strictly do NOT use emojis anywhere in the text or copy.
+
+            Transform this approved video concept into tailored formats for LinkedIn, Instagram, and WhatsApp:
+            - LinkedIn: 1) A long-form professional text post using the hook. 2) A 5-slide outline for a PDF carousel.
+            - Instagram: 1) An infographic caption with clean whitespace, strong takeaways, and targeted SEO hashtags (no emojis). 2) An interactive IG Story idea (like a poll or quiz).
+            - WhatsApp: 1) A punchy broadcast message (max 3 sentences) with *bolding* for readability, teasing a link (strictly no emojis). 2) A community poll idea with options that sparks debate.
+
+            Core Concept Title: {core_concept.title}
             Core Concept Hook: {core_concept.hook}
+            Core Concept Problem: {core_concept.problem}
             Core Concept Insight: {core_concept.insight}
-            Abstract Pattern: {pattern}
-            
-            Output strictly as JSON matching the LinkedInIdeation schema.
+            Abstract Viral Pattern: {pattern}
+
+            Output strictly as a JSON object matching the PlatformIdeations schema.
             """
-            li_response = li_model.generate_content(
-                li_prompt,
+            response = model.generate_content(
+                prompt,
                 generation_config=genai.GenerationConfig(
                     response_mime_type="application/json",
-                    response_schema=LinkedInIdeation
+                    response_schema=PlatformIdeations
                 )
             )
-            ideations['linkedin'] = json.loads(li_response.text)
-            
-            # Instagram
-            ig_model = genai.GenerativeModel(self.model_name)
-            ig_prompt = f"""
-            You are an expert Instagram content strategist for B2B founders.
-            Transform this core video concept into two visual formats:
-            1. An infographic caption with clean whitespace, strong takeaways, and targeted SEO hashtags. Strictly do NOT use emojis so the copy feels human and executive.
-            2. An interactive IG Story idea (like a poll, quiz, or 'this or that') to drive engagement.
-            
-            Core Concept Hook: {core_concept.hook}
-            Core Concept Insight: {core_concept.insight}
-            
-            Output strictly as JSON matching the InstagramIdeation schema.
-            """
-            ig_response = ig_model.generate_content(
-                ig_prompt,
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                    response_schema=InstagramIdeation
-                )
-            )
-            ideations['instagram'] = json.loads(ig_response.text)
-            
-            # WhatsApp
-            wa_model = genai.GenerativeModel(self.model_name)
-            wa_prompt = f"""
-            You are an expert WhatsApp community manager for B2B founders.
-            Transform this core video concept into WhatsApp-native formats:
-            1. A broadcast message (max 3 sentences) with *bolding* for readability, teasing a link. Strictly do NOT use emojis.
-            2. A community poll idea (with options) that sparks debate around the core problem.
-            
-            Core Concept Hook: {core_concept.hook}
-            Core Concept Problem: {core_concept.body}
-            
-            Output strictly as JSON matching the WhatsAppIdeation schema.
-            """
-            wa_response = wa_model.generate_content(
-                wa_prompt,
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                    response_schema=WhatsAppIdeation
-                )
-            )
-            ideations['whatsapp'] = json.loads(wa_response.text)
-            
-            return ideations
-            
+            data = json.loads(response.text)
+            return {
+                "linkedin": data.get("linkedin", {}),
+                "instagram": data.get("instagram", {}),
+                "whatsapp": data.get("whatsapp", {})
+            }
         except Exception as e:
             logger.error(f"Failed to generate platform ideations: {e}")
             return {}

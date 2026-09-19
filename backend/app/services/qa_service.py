@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class QAService:
     def __init__(self):
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 
     def _configure_genai(self):
         key = settings_service.get_gemini_key()
