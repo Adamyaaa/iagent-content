@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Info } from 'lucide-react';
 
-const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 export default function Settings() {
   const [settings, setSettings] = useState({
@@ -92,31 +92,15 @@ export default function Settings() {
           </div>
 
           <div className="pt-4">
-            <h3 className="text-lg font-medium mb-4 pb-2 border-b border-gray-100">Database & State (Supabase)</h3>
+            <h3 className="text-lg font-medium mb-4 pb-2 border-b border-gray-100 flex items-center justify-between">
+              Database Configuration
+            </h3>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Supabase Project URL</label>
-                <input 
-                  type="text" 
-                  name="supabase_url"
-                  value={settings.supabase_url}
-                  onChange={handleChange}
-                  placeholder="https://xyz.supabase.co"
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Supabase Service Role Key</label>
-                <input 
-                  type="text" 
-                  name="supabase_service_key"
-                  value={settings.supabase_service_key}
-                  onChange={handleChange}
-                  placeholder="eyJ..."
-                  className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
-                />
+            <div className="bg-blue-50/50 p-4 rounded-lg flex gap-3 border border-blue-100">
+              <Info className="text-blue-500 shrink-0" size={20} />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Supabase credentials are managed via Environment Variables.</p>
+                <p>To keep the backend stateless for free deployment, <b>SUPABASE_URL</b> and <b>SUPABASE_SERVICE_KEY</b> must be set in your hosting provider's dashboard (e.g., Render, Koyeb, Vercel). The AI keys above are saved directly to your Supabase database.</p>
               </div>
             </div>
           </div>
@@ -124,7 +108,7 @@ export default function Settings() {
           <div className="pt-6 border-t border-gray-100 flex items-center justify-between">
             {saved ? (
               <span className="flex items-center gap-2 text-green-600 font-medium">
-                <CheckCircle2 size={20} /> Settings saved to backend
+                <CheckCircle2 size={20} /> Settings saved to Database
               </span>
             ) : <span />}
             

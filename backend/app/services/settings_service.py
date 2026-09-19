@@ -1,9 +1,9 @@
-import os
-import json
+import logging
 from pydantic import BaseModel
 from ..config import settings as env_settings
+from ..database.supabase_client import supabase_db
 
-SETTINGS_FILE = os.path.join(os.getcwd(), 'data', 'settings.json')
+logger = logging.getLogger(__name__)
 
 class AppSettings(BaseModel):
     groq_api_key: str = ""
@@ -12,35 +12,44 @@ class AppSettings(BaseModel):
     supabase_service_key: str = ""
 
 class SettingsService:
-    def __init__(self):
-        os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
-        if not os.path.exists(SETTINGS_FILE):
-            with open(SETTINGS_FILE, 'w') as f:
-                json.dump({}, f)
+    def _get_db_value(self, key: str, default: str) -> str:
+        client = supabase_db.get_client()
+        if not client:
+            return default
+        try:
+            res = client.table("system_settings").select("value").eq("key", key).execute()
+            if res.data and len(res.data) > 0:
+                return res.data[0]["value"]
+        except Exception as e:
+            logger.warning(f"Could not fetch {key} from DB: {e}")
+        return default
+
+    def _set_db_value(self, key: str, value: str):
+        client = supabase_db.get_client()
+        if not client or not value:
+            return
+        try:
+            client.table("system_settings").upsert({"key": key, "value": value}).execute()
+        except Exception as e:
+            logger.warning(f"Could not save {key} to DB: {e}")
 
     def load_settings(self) -> AppSettings:
-        with open(SETTINGS_FILE, 'r') as f:
-            data = json.load(f)
-            
         return AppSettings(
-            groq_api_key=data.get('groq_api_key', env_settings.groq_api_key),
-            gemini_api_key=data.get('gemini_api_key', env_settings.gemini_api_key),
-            supabase_url=data.get('supabase_url', env_settings.supabase_url),
-            supabase_service_key=data.get('supabase_service_key', env_settings.supabase_service_key),
+            groq_api_key=self._get_db_value("groq_api_key", env_settings.groq_api_key),
+            gemini_api_key=self._get_db_value("gemini_api_key", env_settings.gemini_api_key),
+            supabase_url=env_settings.supabase_url,
+            supabase_service_key=env_settings.supabase_service_key,
         )
 
     def save_settings(self, new_settings: AppSettings):
-        with open(SETTINGS_FILE, 'w') as f:
-            json.dump(new_settings.model_dump(), f)
+        self._set_db_value("groq_api_key", new_settings.groq_api_key)
+        self._set_db_value("gemini_api_key", new_settings.gemini_api_key)
+        # Supabase URL and Key are now strictly env variables, we don't save them in the DB.
 
     def get_groq_key(self):
         return self.load_settings().groq_api_key
 
     def get_gemini_key(self):
         return self.load_settings().gemini_api_key
-
-    def get_supabase_credentials(self):
-        s = self.load_settings()
-        return s.supabase_url, s.supabase_service_key
 
 settings_service = SettingsService()

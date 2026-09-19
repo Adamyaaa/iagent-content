@@ -4,9 +4,5 @@ services:
     env: docker
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
-    plan: starter
+    plan: free
     healthCheckPath: /health
-    disk:
-      name: data-disk
-      mountPath: /app/data
-      sizeGB: 1
