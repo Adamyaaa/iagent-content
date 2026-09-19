@@ -2,7 +2,7 @@ import os
 import yt_dlp
 import subprocess
 import logging
-import requests
+import httpx
 from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,6 @@ class MediaService:
                     "X-RapidAPI-Key": os.getenv("RAPIDAPI_KEY"),
                     "X-RapidAPI-Host": "instagram-scraper-api2.p.rapidapi.com"
                 }
-                # Example request, we fall through if it fails since actual endpoint may vary
                 raise Exception("RapidAPI Layer not fully implemented - falling back")
             except Exception as e:
                 logger.warning(f"Layer 1 failed: {e}")
@@ -44,20 +43,22 @@ class MediaService:
                 "videoQuality": "1080"
             }
             cobalt_url = "https://co.wuk.sh/api/json"
-            response = requests.post(cobalt_url, json=payload, headers=headers, timeout=10)
             
-            if response.status_code == 200:
-                data = response.json()
-                if "url" in data:
-                    direct_url = data["url"]
-                    logger.info("Cobalt API returned direct URL. Downloading stream...")
-                    video_resp = requests.get(direct_url, stream=True)
-                    video_resp.raise_for_status()
-                    with open(video_path, 'wb') as f:
-                        for chunk in video_resp.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                    return video_path
-            logger.warning(f"Layer 2 failed with status {response.status_code}: {response.text}")
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(cobalt_url, json=payload, headers=headers)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    if "url" in data:
+                        direct_url = data["url"]
+                        logger.info("Cobalt API returned direct URL. Downloading stream...")
+                        with client.stream("GET", direct_url) as video_resp:
+                            video_resp.raise_for_status()
+                            with open(video_path, 'wb') as f:
+                                for chunk in video_resp.iter_bytes(chunk_size=8192):
+                                    f.write(chunk)
+                        return video_path
+                logger.warning(f"Layer 2 failed with status {response.status_code}: {response.text}")
         except Exception as e:
             logger.warning(f"Layer 2 failed: {e}")
 
