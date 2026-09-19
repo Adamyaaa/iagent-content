@@ -27,13 +27,13 @@ async def get_settings():
 async def update_settings(new_settings: AppSettings):
     current = settings_service.load_settings()
     
-    if new_settings.groq_api_key and not new_settings.groq_api_key.endswith("***"):
+    if new_settings.groq_api_key and "*" not in new_settings.groq_api_key:
         current.groq_api_key = new_settings.groq_api_key.strip()
-    if new_settings.gemini_api_key and not new_settings.gemini_api_key.endswith("***"):
+    if new_settings.gemini_api_key and "*" not in new_settings.gemini_api_key:
         current.gemini_api_key = new_settings.gemini_api_key.strip()
     if new_settings.supabase_url:
         current.supabase_url = new_settings.supabase_url.strip()
-    if new_settings.supabase_service_key and not new_settings.supabase_service_key.endswith("***"):
+    if new_settings.supabase_service_key and "*" not in new_settings.supabase_service_key:
         current.supabase_service_key = new_settings.supabase_service_key.strip()
         
     settings_service.save_settings(current)
