@@ -1,9 +1,11 @@
 import os
+import re
+import html as html_module
 import yt_dlp
 import subprocess
 import logging
 import httpx
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,21 @@ class MediaService:
         """
         os.makedirs(output_dir, exist_ok=True)
         video_path = os.path.join(output_dir, 'video.mp4')
-        
+
+        # Layer 0: LinkedIn photo/text post fallback (yt-dlp can only handle video posts)
+        if "linkedin.com" in url:
+            logger.info("Layer 0: Trying LinkedIn photo fallback (Twitterbot OG scrape)")
+            try:
+                lk_video_path, og_description = self._try_linkedin_photo_fallback(url, output_dir)
+                if og_description:
+                    override_path = os.path.join(output_dir, 'transcript_override.txt')
+                    with open(override_path, 'w', encoding='utf-8') as f:
+                        f.write(og_description)
+                    logger.info(f"Wrote {len(og_description)} chars to transcript_override.txt")
+                return lk_video_path
+            except Exception as e:
+                logger.warning(f"Layer 0 (LinkedIn photo) failed: {e} — falling through to video layers")
+
         # Layer 1: Dedicated API (Instagram)
         if "instagram.com" in url and os.getenv("RAPIDAPI_KEY"):
             logger.info("Layer 1: Trying RapidAPI for Instagram")
@@ -85,6 +101,82 @@ class MediaService:
         logger.info("Layer 3: Falling back to yt-dlp")
         meta = self.download_video(url, output_dir)
         return meta['video_path']
+
+    def _try_linkedin_photo_fallback(self, url: str, output_dir: str) -> Tuple[str, str]:
+        """
+        For LinkedIn photo/text posts that yt-dlp cannot handle.
+        1. Fetches page with Twitterbot/1.0 UA to bypass login wall.
+        2. Parses og:image and og:description meta tags.
+        3. Downloads the photo and converts it to a 5-second silent MP4.
+        Returns (video_path, og_description). Raises Exception if not a photo post.
+        """
+        headers = {
+            "User-Agent": "Twitterbot/1.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+
+        with httpx.Client(timeout=20.0, follow_redirects=True) as client:
+            resp = client.get(url, headers=headers)
+            if resp.status_code != 200:
+                raise Exception(f"LinkedIn page returned HTTP {resp.status_code}")
+            html_text = resp.text
+
+        def _parse_og(prop: str) -> Optional[str]:
+            # Try property-first attribute order
+            m = re.search(
+                rf'<meta[^>]+property=["\']og:{prop}["\'][^>]+content=["\']([^"\']+)["\']',
+                html_text, re.IGNORECASE
+            )
+            if not m:
+                # Try content-first attribute order
+                m = re.search(
+                    rf'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:{prop}["\']',
+                    html_text, re.IGNORECASE
+                )
+            return html_module.unescape(m.group(1)) if m else None
+
+        og_image = _parse_og("image")
+        og_description = _parse_og("description") or ""
+
+        if not og_image:
+            raise Exception("No og:image tag found — post may be a video or requires login")
+
+        # Download the image
+        photo_path = os.path.join(output_dir, 'linkedin_photo.jpg')
+        with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+            img_resp = client.get(og_image, headers={"User-Agent": "Twitterbot/1.0"})
+            img_resp.raise_for_status()
+            with open(photo_path, 'wb') as f:
+                f.write(img_resp.content)
+
+        if not os.path.exists(photo_path) or os.path.getsize(photo_path) == 0:
+            raise Exception("Downloaded LinkedIn photo is empty or missing")
+
+        # Convert static image to 5-second silent MP4
+        video_path = os.path.join(output_dir, 'video.mp4')
+        ffmpeg_bin = get_ffmpeg_exe()
+        command = [
+            ffmpeg_bin, '-y',
+            '-loop', '1', '-i', photo_path,
+            '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+            '-c:v', 'libx264', '-t', '5',
+            '-pix_fmt', 'yuv420p',
+            '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+            '-c:a', 'aac', '-shortest',
+            video_path
+        ]
+        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg photo-to-video failed: {result.stderr.decode()[:200]}")
+
+        if not os.path.exists(video_path) or os.path.getsize(video_path) == 0:
+            raise Exception("FFmpeg produced an empty video file")
+
+        logger.info(
+            f"LinkedIn photo -> video OK ({os.path.getsize(video_path)} bytes). "
+            f"Description: {og_description[:80]}..."
+        )
+        return video_path, og_description
 
     def download_video(self, url: str, output_dir: str) -> Dict[str, Any]:
         """

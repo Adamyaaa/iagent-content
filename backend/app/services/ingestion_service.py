@@ -68,8 +68,14 @@ class IngestionService:
                 video_path=video_path, output_dir=frames_dir, duration=duration
             )
 
-            # 3. Transcribe audio
-            transcript = transcription_service.transcribe_audio(audio_path)
+            # 3. Transcribe audio — or use text override (e.g. LinkedIn photo post body)
+            transcript_override_path = os.path.join(temp_dir, 'transcript_override.txt')
+            if os.path.exists(transcript_override_path):
+                with open(transcript_override_path, 'r', encoding='utf-8') as _f:
+                    transcript = _f.read().strip()
+                logger.info(f"Using transcript override ({len(transcript)} chars) — skipping audio transcription")
+            else:
+                transcript = transcription_service.transcribe_audio(audio_path)
             
             # 4. Reverse-engineer video structure with Gemini
             analysis = gemini_service.analyze_content(frame_paths, transcript, video_meta, platform)
