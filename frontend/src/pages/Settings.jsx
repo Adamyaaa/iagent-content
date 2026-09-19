@@ -91,20 +91,6 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="pt-4">
-            <h3 className="text-lg font-medium mb-4 pb-2 border-b border-gray-100 flex items-center justify-between">
-              Database Configuration
-            </h3>
-            
-            <div className="bg-blue-50/50 p-4 rounded-lg flex gap-3 border border-blue-100">
-              <Info className="text-blue-500 shrink-0" size={20} />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Supabase credentials are managed via Environment Variables.</p>
-                <p>To keep the backend stateless for free deployment, <b>SUPABASE_URL</b> and <b>SUPABASE_SERVICE_KEY</b> must be set in your hosting provider's dashboard (e.g., Render, Koyeb, Vercel). The AI keys above are saved directly to your Supabase database.</p>
-              </div>
-            </div>
-          </div>
-
           <div className="pt-6 border-t border-gray-100 flex items-center justify-between">
             {saved ? (
               <span className="flex items-center gap-2 text-green-600 font-medium">
