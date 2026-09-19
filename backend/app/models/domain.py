@@ -53,3 +53,24 @@ class QAScore(BaseModel):
     ai_accuracy: int
     issues: List[str]
     improvements: List[str]
+
+class LinkedInIdeation(BaseModel):
+    text_post: str = Field(description="A long-form professional text post using the viral hook")
+    carousel_outline: List[str] = Field(description="A 5-slide outline for a PDF document post")
+
+class InstagramIdeation(BaseModel):
+    infographic_caption: str = Field(description="An emoji-rich caption with aggressive SEO hashtags")
+    story_idea: str = Field(description="An interactive IG Story idea (e.g. poll or quiz)")
+
+class WhatsAppIdeation(BaseModel):
+    broadcast_message: str = Field(description="A short, punchy 2-sentence hook with *bolding* and emojis")
+    community_poll: str = Field(description="A multiple-choice poll idea based on the core problem")
+
+class GenerationResult(BaseModel):
+    final_concept: Optional[ContentConcept] = None
+    final_score: Optional[QAScore] = None
+    linkedin: Optional[LinkedInIdeation] = None
+    instagram: Optional[InstagramIdeation] = None
+    whatsapp: Optional[WhatsAppIdeation] = None
+    revisions_taken: int = 0
+    history: List[Dict[str, Any]] = []

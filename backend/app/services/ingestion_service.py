@@ -77,12 +77,17 @@ class IngestionService:
                 # Save Concept to DB
                 concept = generation_result.get("final_concept")
                 qa_score = generation_result.get("final_score")
+                ideations = generation_result.get("ideations", {})
+                
                 if concept:
                     client.table("content_concepts").insert({
                         "queue_id": queue_id,
                         "title": concept.title,
                         "generated_concept": concept.model_dump(),
                         "scene_breakdowns": [s.model_dump() for s in concept.scene_breakdown],
+                        "linkedin_ideation": ideations.get("linkedin", {}),
+                        "instagram_ideation": ideations.get("instagram", {}),
+                        "whatsapp_ideation": ideations.get("whatsapp", {}),
                         "qa_scores": qa_score.model_dump() if qa_score else {},
                         "approval_status": qa_score.approved if qa_score else False
                     }).execute()

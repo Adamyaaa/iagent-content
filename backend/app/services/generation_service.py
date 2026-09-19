@@ -1,9 +1,9 @@
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List
 import google.generativeai as genai
-from ..services.settings_service import settings_service
-from ..models.domain import ContentConcept, SceneBreakdown
+from ..models.domain import ContentConcept, SceneBreakdown, QAScore, GenerationResult, LinkedInIdeation, InstagramIdeation, WhatsAppIdeation
+from .settings_service import settings_service
 from .qa_service import qa_service
 
 logger = logging.getLogger(__name__)
@@ -98,6 +98,91 @@ class GenerationService:
             logger.error(f"Failed to parse Concept generation response: {e}")
             raise e
 
+    def generate_platform_ideations(self, core_concept: ContentConcept, pattern: str) -> Dict[str, Any]:
+        """
+        Takes the core concept and expands it into platform-specific ideation panels.
+        """
+        if not self._configure_genai():
+            return {}
+            
+        logger.info(f"Generating platform ideations for: {core_concept.title}")
+        
+        try:
+            ideations = {}
+            
+            # LinkedIn
+            li_model = genai.GenerativeModel(self.model_name)
+            li_prompt = f"""
+            You are an expert LinkedIn ghostwriter for B2B AI agencies.
+            Transform this core video concept into two LinkedIn formats:
+            1. A long-form text post that captures attention and drives professional engagement.
+            2. An outline for a 5-slide PDF carousel that breaks down the core problem/solution.
+            
+            Core Concept Hook: {core_concept.hook}
+            Core Concept Insight: {core_concept.insight}
+            Abstract Pattern: {pattern}
+            
+            Output strictly as JSON matching the LinkedInIdeation schema.
+            """
+            li_response = li_model.generate_content(
+                li_prompt,
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json",
+                    response_schema=LinkedInIdeation
+                )
+            )
+            ideations['linkedin'] = json.loads(li_response.text)
+            
+            # Instagram
+            ig_model = genai.GenerativeModel(self.model_name)
+            ig_prompt = f"""
+            You are an expert Instagram growth hacker.
+            Transform this core video concept into two visual formats:
+            1. An infographic caption (heavy on emojis, whitespace, and aggressive SEO hashtags).
+            2. An interactive IG Story idea (like a poll, quiz, or "this or that") to drive engagement.
+            
+            Core Concept Hook: {core_concept.hook}
+            Core Concept Insight: {core_concept.insight}
+            
+            Output strictly as JSON matching the InstagramIdeation schema.
+            """
+            ig_response = ig_model.generate_content(
+                ig_prompt,
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json",
+                    response_schema=InstagramIdeation
+                )
+            )
+            ideations['instagram'] = json.loads(ig_response.text)
+            
+            # WhatsApp
+            wa_model = genai.GenerativeModel(self.model_name)
+            wa_prompt = f"""
+            You are an expert WhatsApp community manager for B2B founders.
+            Transform this core video concept into WhatsApp-native formats:
+            1. A broadcast message (max 3 sentences) with *bolding* and emojis, teasing a link.
+            2. A community poll idea (with options) that sparks debate around the core problem.
+            
+            Core Concept Hook: {core_concept.hook}
+            Core Concept Problem: {core_concept.body}
+            
+            Output strictly as JSON matching the WhatsAppIdeation schema.
+            """
+            wa_response = wa_model.generate_content(
+                wa_prompt,
+                generation_config=genai.GenerationConfig(
+                    response_mime_type="application/json",
+                    response_schema=WhatsAppIdeation
+                )
+            )
+            ideations['whatsapp'] = json.loads(wa_response.text)
+            
+            return ideations
+            
+        except Exception as e:
+            logger.error(f"Failed to generate platform ideations: {e}")
+            return {}
+
     def generate_with_revisions(self, extracted_pattern: str, topic_context: str = "") -> Dict[str, Any]:
         """
         Generates a concept and runs it through the Brand QA critic.
@@ -124,22 +209,28 @@ class GenerationService:
             
             if qa_score.approved:
                 logger.info(f"Concept approved on attempt {attempt} with score {qa_score.overall_score}")
+                
+                ideations = self.generate_platform_ideations(concept, extracted_pattern)
+                
                 return {
                     "approved": True,
                     "final_concept": concept,
                     "final_score": qa_score,
-                    "history": history
+                    "history": history,
+                    "ideations": ideations
                 }
                 
             logger.warning(f"Concept rejected with score {qa_score.overall_score}. Needs revision.")
             feedback = f"Issues: {', '.join(qa_score.issues)}. Improvements needed: {', '.join(qa_score.improvements)}."
             
         logger.error(f"Failed to generate an approved concept after {max_revisions} revisions.")
+        ideations = self.generate_platform_ideations(concept, extracted_pattern)
         return {
             "approved": False,
             "final_concept": concept,
             "final_score": qa_score,
-            "history": history
+            "history": history,
+            "ideations": ideations
         }
 
 generation_service = GenerationService()
