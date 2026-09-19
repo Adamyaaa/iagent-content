@@ -13,7 +13,7 @@ export default function Sidebar() {
   return (
     <div className="w-64 h-screen bg-foreground text-background flex flex-col">
       <div className="p-6">
-        <h1 className="text-xl font-bold tracking-tight text-accent">iAgent Solutions</h1>
+        <h1 className="text-xl font-bold tracking-tight text-accent">iAgent Labs</h1>
         <p className="text-sm text-gray-400 mt-1">Content OS</p>
       </div>
       <nav className="flex-1 px-4 mt-6">

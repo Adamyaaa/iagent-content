@@ -1,4 +1,4 @@
--- PostgreSQL Schema for iAgent Solutions Content OS
+-- PostgreSQL Schema for iAgent Labs Content OS
 
 CREATE TYPE content_status AS ENUM (
     'pending', 

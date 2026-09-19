@@ -42,7 +42,7 @@ class QAService:
         model = genai.GenerativeModel(self.model_name)
         
         prompt = f"""
-        You are the Chief Brand Critic for iAgent Solutions (Hyderabad, India).
+        You are the Chief Brand Critic for iAgent Labs (Hyderabad, India).
         Evaluate the following content concept based on our strict brand guidelines.
         
         Brand Guidelines:

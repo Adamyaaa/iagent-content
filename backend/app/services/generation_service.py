@@ -21,7 +21,7 @@ class GenerationService:
 
     def generate_concept(self, extracted_pattern: str, topic_context: str = "", feedback: str = "") -> ContentConcept:
         """
-        Generates a completely new concept based on the pattern, tailored to iAgent Solutions.
+        Generates a completely new concept based on the pattern, tailored to iAgent Labs.
         """
         if not self._configure_genai():
             logger.warning("GEMINI_API_KEY not set. Returning a mock concept.")
@@ -42,11 +42,11 @@ class GenerationService:
         model = genai.GenerativeModel(self.model_name)
         
         prompt = f"""
-        You are the Lead Content Architect for 'iAgent Solutions' (based in Hyderabad, India).
+        You are the Lead Content Architect for 'iAgent Labs' (based in Hyderabad, India).
         We build AI agents, enterprise chatbots, and automation systems for Indian businesses.
         Our brand voice is Intelligent, Confident, Business-focused, Direct, and Practical.
         
-        Using the following viral content pattern, generate an ORIGINAL short-form video concept tailored to iAgent Solutions.
+        Using the following viral content pattern, generate an ORIGINAL short-form video concept tailored to iAgent Labs.
         Do NOT copy the original content. Only use the abstract psychological structure.
         
         Extracted Pattern:

@@ -4,7 +4,7 @@ from .config import settings
 from .routers import ingestion, dashboard, settings as settings_router
 
 app = FastAPI(
-    title="iAgent Solutions Content OS",
+    title="iAgent Labs Content OS",
     description="Core backend for the fully automated AI content intelligence and generation system.",
     version="1.0.0"
 )
@@ -24,7 +24,7 @@ app.include_router(settings_router.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to the iAgent Solutions Content OS API"}
+    return {"message": "Welcome to the iAgent Labs Content OS API"}
 
 @app.get("/health")
 async def health_check():
