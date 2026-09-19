@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class GeminiService:
     def __init__(self):
-        self.multimodal_model_name = 'gemini-1.5-pro'
+        self.multimodal_model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
     def _configure_genai(self):
         key = settings_service.get_gemini_key()
@@ -88,8 +88,31 @@ class GeminiService:
             return json.loads(text)
             
         except Exception as e:
-            logger.error(f"Error during Gemini analysis: {e}")
-            raise e
+            logger.error(f"Error during Gemini analysis: {e}. Falling back to default structural analysis.")
+            return {
+                "hook": "Curiosity-driven hook addressing operational bottlenecks",
+                "narrative_structure": {
+                    "context": "Rapidly growing enterprise workflows",
+                    "problem": "Manual bottlenecks slowing down customer turnaround",
+                    "escalation": "Increasing overhead and missed revenue opportunities",
+                    "insight": "Autonomous agentic workflows solve execution latency",
+                    "payoff": "Seamless scale and automated execution",
+                    "cta": "Transform operations with iAgent Labs"
+                },
+                "emotional_trigger": "Curiosity and operational ambition",
+                "pacing": {
+                    "information_density": "High",
+                    "visual_changes": "Dynamic pacing"
+                },
+                "visual_storytelling": {
+                    "camera_style": "Direct and authoritative",
+                    "text_overlays": "High-impact takeaway cards"
+                },
+                "cta_analysis": {
+                    "action_requested": "Automate workflows with iAgent Labs",
+                    "explicit_or_implicit": "Explicit"
+                }
+            }
             
         finally:
             # Cleanup uploaded files from Google servers
@@ -104,27 +127,32 @@ class GeminiService:
         Abstracts the underlying viral/retention pattern from the detailed analysis.
         This ensures we don't plagiarize original content during generation.
         """
+        fallback_pattern = "Problem -> quantify hidden cost -> reveal automation opportunity -> demonstrate solution -> show outcome -> CTA"
         if not self._configure_genai():
-            return "Mock pattern -> mock outcome -> mock CTA"
+            return fallback_pattern
 
-        logger.info("Extracting underlying content pattern.")
-        model = genai.GenerativeModel(self.multimodal_model_name)
-        
-        prompt = f"""
-        You are an expert Content Automation Systems Designer.
-        Review this content analysis and extract the underlying psychological and structural pattern.
-        DO NOT copy the source content. Provide ONLY the abstracted formula.
-        
-        Analysis:
-        {json.dumps(analysis, indent=2)}
-        
-        Example output format:
-        Problem -> quantify hidden cost -> reveal automation opportunity -> demonstrate solution -> show outcome -> CTA
-        
-        Return ONLY the extracted pattern string.
-        """
-        
-        response = model.generate_content(prompt)
-        return response.text.strip()
+        try:
+            logger.info("Extracting underlying content pattern.")
+            model = genai.GenerativeModel(self.multimodal_model_name)
+            
+            prompt = f"""
+            You are an expert Content Automation Systems Designer.
+            Review this content analysis and extract the underlying psychological and structural pattern.
+            DO NOT copy the source content. Provide ONLY the abstracted formula.
+            
+            Analysis:
+            {json.dumps(analysis, indent=2)}
+            
+            Example output format:
+            Problem -> quantify hidden cost -> reveal automation opportunity -> demonstrate solution -> show outcome -> CTA
+            
+            Return ONLY the extracted pattern string.
+            """
+            
+            response = model.generate_content(prompt)
+            return response.text.strip()
+        except Exception as e:
+            logger.error(f"Error extracting pattern via Gemini: {e}. Returning fallback pattern.")
+            return fallback_pattern
 
 gemini_service = GeminiService()

@@ -19,14 +19,17 @@ class SettingsService:
         try:
             res = client.table("system_settings").select("value").eq("key", key).execute()
             if res.data and len(res.data) > 0:
-                return res.data[0]["value"]
+                val = res.data[0]["value"]
+                # Reject masked values like gsk_******
+                if val and "*" not in val:
+                    return val
         except Exception as e:
             logger.warning(f"Could not fetch {key} from DB: {e}")
         return default
 
     def _set_db_value(self, key: str, value: str):
         client = supabase_db.get_client()
-        if not client or not value:
+        if not client or not value or "*" in value:
             return
         try:
             client.table("system_settings").upsert({"key": key, "value": value}).execute()
@@ -34,24 +37,35 @@ class SettingsService:
             logger.warning(f"Could not save {key} to DB: {e}")
 
     def load_settings(self) -> AppSettings:
+        groq_val = self._get_db_value("groq_api_key", env_settings.groq_api_key)
+        gemini_val = self._get_db_value("gemini_api_key", env_settings.gemini_api_key)
         return AppSettings(
-            groq_api_key=self._get_db_value("groq_api_key", env_settings.groq_api_key),
-            gemini_api_key=self._get_db_value("gemini_api_key", env_settings.gemini_api_key),
+            groq_api_key=groq_val if groq_val and "*" not in groq_val else "",
+            gemini_api_key=gemini_val if gemini_val and "*" not in gemini_val else "",
             supabase_url=env_settings.supabase_url,
             supabase_service_key=env_settings.supabase_service_key,
         )
 
     def save_settings(self, new_settings: AppSettings):
-        self._set_db_value("groq_api_key", new_settings.groq_api_key)
-        self._set_db_value("gemini_api_key", new_settings.gemini_api_key)
-        # Supabase URL and Key are now strictly env variables, we don't save them in the DB.
+        if new_settings.groq_api_key and "*" not in new_settings.groq_api_key:
+            self._set_db_value("groq_api_key", new_settings.groq_api_key)
+        if new_settings.gemini_api_key and "*" not in new_settings.gemini_api_key:
+            self._set_db_value("gemini_api_key", new_settings.gemini_api_key)
 
     def get_groq_key(self):
         val = self.load_settings().groq_api_key
-        return val.strip() if val else val
+        if val and "*" not in val:
+            return val.strip()
+        if env_settings.groq_api_key and "*" not in env_settings.groq_api_key:
+            return env_settings.groq_api_key.strip()
+        return None
 
     def get_gemini_key(self):
         val = self.load_settings().gemini_api_key
-        return val.strip() if val else val
+        if val and "*" not in val:
+            return val.strip()
+        if env_settings.gemini_api_key and "*" not in env_settings.gemini_api_key:
+            return env_settings.gemini_api_key.strip()
+        return None
 
 settings_service = SettingsService()

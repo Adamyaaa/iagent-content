@@ -16,23 +16,30 @@ router = APIRouter(
     tags=["Ingestion"]
 )
 
+# Anchor temp dir to backend/app/temp regardless of current working directory
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMP_ROOT = os.path.join(APP_DIR, 'temp')
+
 def download_and_process_url(url: str, queue_id: str, platform: str):
     try:
-        temp_dir = os.path.join(os.getcwd(), 'app', 'temp', queue_id)
+        temp_dir = os.path.join(TEMP_ROOT, queue_id)
         os.makedirs(temp_dir, exist_ok=True)
         logger.info(f"Downloading URL {url} for queue_id {queue_id}")
         
         # The 3-Layer Waterfall Downloader
         video_path = media_service.download_social_video(url, temp_dir)
         
-        # Now trigger the unified processing pipeline
+        # Trigger the unified processing pipeline
         ingestion_service.process_video_pipeline(queue_id, video_path, "url_download.mp4", platform)
     except Exception as e:
         logger.error(f"Background task failed for queue_id {queue_id}: {str(e)}")
         client = supabase_db.get_client()
         if client:
-            error_msg = f"FAILED: ERROR: {str(e)}"[:200]
-            client.table("trend_queue").update({"status": "rejected", "source_url": error_msg}).eq("id", queue_id).execute()
+            try:
+                error_msg = f"FAILED: ERROR: {str(e)}"[:200]
+                client.table("trend_queue").update({"status": "rejected", "source_url": error_msg}).eq("id", queue_id).execute()
+            except Exception:
+                pass
 
 def run_upload_pipeline(queue_id: str, video_path: str, filename: str, platform: str):
     try:
@@ -44,12 +51,17 @@ def run_upload_pipeline(queue_id: str, video_path: str, filename: str, platform:
 async def ingest_url(request: IngestUrlRequest, background_tasks: BackgroundTasks):
     queue_id = str(uuid.uuid4())
     
-    if supabase_db.get_client():
-        supabase_db.get_client().table("trend_queue").insert({
-            "id": queue_id,
-            "source_url": str(request.url),
-            "status": "queued"
-        }).execute()
+    client = supabase_db.get_client()
+    if client:
+        try:
+            client.table("trend_queue").insert({
+                "id": queue_id,
+                "source_url": str(request.url),
+                "source_platform": request.source_platform,
+                "status": "pending"
+            }).execute()
+        except Exception as e:
+            logger.warning(f"Could not insert initial queue item into Supabase: {e}")
 
     background_tasks.add_task(download_and_process_url, url=str(request.url), queue_id=queue_id, platform=request.source_platform)
     return IngestUrlResponse(message="Ingestion pipeline started.", queue_id=queue_id, status="pending")
@@ -62,22 +74,28 @@ async def ingest_upload(
 ):
     try:
         queue_id = str(uuid.uuid4())
-        temp_dir = os.path.join(os.getcwd(), 'app', 'temp', queue_id)
+        temp_dir = os.path.join(TEMP_ROOT, queue_id)
         os.makedirs(temp_dir, exist_ok=True)
         
-        # Guard against None filename
-        filename = file.filename or "uploaded_video.mp4"
+        # Guard against None filename and sanitize
+        raw_name = file.filename or "uploaded_video.mp4"
+        filename = os.path.basename(raw_name)
         video_path = os.path.join(temp_dir, filename)
         
         with open(video_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        if supabase_db.get_client():
-            supabase_db.get_client().table("trend_queue").insert({
-                "id": queue_id,
-                "source_url": f"Local Upload: {filename}",
-                "status": "queued"
-            }).execute()
+        client = supabase_db.get_client()
+        if client:
+            try:
+                client.table("trend_queue").insert({
+                    "id": queue_id,
+                    "source_url": f"Local Upload: {filename}",
+                    "source_platform": source_platform,
+                    "status": "pending"
+                }).execute()
+            except Exception as e:
+                logger.warning(f"Could not insert initial upload into Supabase: {e}")
 
         background_tasks.add_task(
             run_upload_pipeline,

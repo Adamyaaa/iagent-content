@@ -27,40 +27,46 @@ class TranscriptionService:
             )
 
         logger.info(f"Transcribing audio via Groq Whisper: {audio_path}")
-        with open(audio_path, "rb") as file:
-            # We use whisper-large-v3 model on Groq for maximum accuracy
-            response = client.audio.transcriptions.create(
-                file=(os.path.basename(audio_path), file.read()),
-                model="whisper-large-v3",
-                response_format="verbose_json"
-            )
-        
-        # Parse segments for detailed timing data
-        segments = []
-        # Groq returns a dict-like or object depending on version. We handle attributes.
-        response_segments = getattr(response, "segments", [])
-        for seg in response_segments:
-            # Depending on Groq client version, seg might be dict or object
-            if isinstance(seg, dict):
-                start = seg.get('start', 0.0)
-                end = seg.get('end', 0.0)
-                text = seg.get('text', '')
-            else:
-                start = getattr(seg, 'start', 0.0)
-                end = getattr(seg, 'end', 0.0)
-                text = getattr(seg, 'text', '')
-                
-            segments.append(TranscriptSegment(
-                start=start,
-                end=end,
-                text=text
-            ))
+        try:
+            with open(audio_path, "rb") as file:
+                response = client.audio.transcriptions.create(
+                    file=(os.path.basename(audio_path), file.read()),
+                    model="whisper-large-v3",
+                    response_format="verbose_json"
+                )
+            
+            # Parse segments for detailed timing data
+            segments = []
+            response_segments = getattr(response, "segments", [])
+            for seg in response_segments:
+                if isinstance(seg, dict):
+                    start = seg.get('start', 0.0)
+                    end = seg.get('end', 0.0)
+                    text = seg.get('text', '')
+                else:
+                    start = getattr(seg, 'start', 0.0)
+                    end = getattr(seg, 'end', 0.0)
+                    text = getattr(seg, 'text', '')
+                    
+                segments.append(TranscriptSegment(
+                    start=start,
+                    end=end,
+                    text=text
+                ))
 
-        return Transcript(
-            transcript=getattr(response, "text", ""),
-            language=getattr(response, "language", "en"),
-            duration=getattr(response, "duration", 0.0),
-            segments=segments
-        )
+            return Transcript(
+                transcript=getattr(response, "text", ""),
+                language=getattr(response, "language", "en"),
+                duration=getattr(response, "duration", 0.0),
+                segments=segments
+            )
+        except Exception as e:
+            logger.error(f"Groq Whisper transcription failed: {e}. Falling back to default transcript.")
+            return Transcript(
+                transcript="Audio transcription was temporarily unavailable. Please verify your Groq API key in settings.",
+                language="en",
+                duration=0.0,
+                segments=[]
+            )
 
 transcription_service = TranscriptionService()
