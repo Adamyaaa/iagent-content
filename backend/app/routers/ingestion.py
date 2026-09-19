@@ -23,7 +23,7 @@ def run_ingestion_pipeline(url: str, queue_id: str, platform: str):
 @router.post("/", response_model=IngestUrlResponse)
 async def ingest_url(request: IngestUrlRequest, background_tasks: BackgroundTasks):
     """
-    Accepts a URL (Instagram, TikTok, YouTube, etc.) and starts the ingestion pipeline.
+    Accepts a URL (Instagram, LinkedIn, YouTube, etc.) and starts the ingestion pipeline.
     """
     queue_id = str(uuid.uuid4())
     
