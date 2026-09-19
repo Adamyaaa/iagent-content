@@ -43,12 +43,13 @@ class MediaService:
 
     def extract_audio(self, video_path: str, output_path: str) -> str:
         """
-        Extracts audio from video and converts it to .wav using FFmpeg.
+        Extracts audio from video and converts it to .mp3 using FFmpeg to stay under Groq's 25MB limit.
         """
+        output_path = output_path.replace('.wav', '.mp3')
         logger.info(f"Extracting audio to {output_path}")
         command = [
             'ffmpeg', '-y', '-i', video_path, 
-            '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', 
+            '-vn', '-acodec', 'libmp3lame', '-q:a', '4', 
             output_path
         ]
         

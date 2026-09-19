@@ -37,8 +37,8 @@ class IngestionService:
 
             # 1-3. Media processing
             video_meta = media_service.download_video(url, temp_dir)
-            audio_path = os.path.join(temp_dir, 'audio.wav')
-            media_service.extract_audio(video_meta['video_path'], audio_path)
+            audio_path = os.path.join(temp_dir, 'audio.mp3')
+            audio_path = media_service.extract_audio(video_meta['video_path'], audio_path)
             frames_dir = os.path.join(temp_dir, 'frames')
             frame_paths = media_service.extract_frames(
                 video_path=video_meta['video_path'], output_dir=frames_dir, duration=video_meta['duration']
